@@ -7,9 +7,12 @@ import json
 
 st.title('Dataset')
 
+# Domain
+domain_api = "https://milk-calculation-backend-ixfc.vercel.app/"
+
 # URL for the FastAPI endpoint
-url_material = "http://127.0.0.1:8000/material_comp"
-url_recipies = "http://127.0.0.1:8000/recipies"
+url_material = domain_api+"material_comp"
+url_recipies = domain_api+"recipies"
 
 def fetch_data(url):
     try:
