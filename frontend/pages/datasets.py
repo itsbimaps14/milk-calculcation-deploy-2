@@ -8,7 +8,7 @@ import json
 st.title('Dataset')
 
 # Domain
-domain_api = "https://milk-calculation-backend-ixfc.vercel.app/"
+domain_api = "http://127.0.0.1:8000/"
 
 # URL for the FastAPI endpoint
 url_material = domain_api+"material_comp"
@@ -20,10 +20,7 @@ def fetch_data(url):
         response = requests.get(url)
         response.raise_for_status()  # Check if the request was successful
         data = response.json()
-
-        # Parse JSON string to dictionary
-        data_dict = json.loads(data)
-        return data_dict
+        return data
     except requests.exceptions.RequestException as e:
         st.error(f"Error fetching data: {e}")
 
@@ -35,8 +32,10 @@ def get_recipe_data():
     return fetch_data(url_recipies)
 
 # for passing data
-df_compositions = pd.DataFrame.from_dict(get_material_data())
-df_recepies = pd.DataFrame.from_dict(get_recipe_data())
+df_compositions = pd.DataFrame(get_material_data())
+df_compositions = df_compositions.set_index('ingridient')
+df_recepies = pd.DataFrame(get_recipe_data())
+df_recepies = df_recepies.set_index('receipe')
 
 # Display the data in Streamlit
 st.write("Data Composition : ")

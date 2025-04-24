@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import pages.datasets as datasets
-import pages.optimize_milk_mixture as optimize
 
 # ------------------------------------------------------------- DEFINE INITIAL & SESSION_STATE
 df_compositions = pd.DataFrame(datasets.get_material_data())
@@ -27,24 +26,6 @@ def initialize_session_state():
         st.session_state.fresh_milk_protein = 0
     if 'fresh_milk_lactose' not in st.session_state:
         st.session_state.fresh_milk_lactose = 0
-    if 'fat_priority' not in st.session_state:
-        st.session_state.fat_priority = 0
-    if 'snf_priority' not in st.session_state:
-        st.session_state.snf_priority = 0
-    if 'pro_priority' not in st.session_state:
-        st.session_state.pro_priority = 0
-    if 'lac_priority' not in st.session_state:
-        st.session_state.lac_priority = 0
-        
-    if 'remaining_fat' not in st.session_state:
-        st.session_state.remaining_fat = 0
-    if 'remaining_snf' not in st.session_state:
-        st.session_state.remaining_snf = 0
-    if 'remaining_prot' not in st.session_state:
-        st.session_state.remaining_prot = 0
-    if 'remaining_lact' not in st.session_state:
-        st.session_state.remaining_lact = 0
-
     if 'rework' not in st.session_state:
         st.session_state.rework = 0
     if 'rework_ts' not in st.session_state:
@@ -86,7 +67,7 @@ st.image("https://www.ultrajaya.co.id/images/header-products.jpg",use_column_wid
 # st.dataframe(df_recepies)
 
 # ------------------------------------------------------------- 1. form input
-if st.session_state.stage >= 0 and st.session_state.stage < 5:
+if st.session_state.stage >= 0 and st.session_state.stage < 4:
     st.header('Step 1 - Input Calculation')
     selected_recipe = st.selectbox(
             'Choose Recipe !',
@@ -98,7 +79,7 @@ if st.session_state.stage >= 0 and st.session_state.stage < 5:
     if selected_recipe != None :
         recipe = set_recipe(recipe_map[selected_recipe])
 
-if st.session_state.stage >= 1 and st.session_state.stage < 5 and selected_recipe != None: 
+if st.session_state.stage >= 1 and st.session_state.stage < 4 and selected_recipe != None: 
     st.write(f'Recipe Choosen is: {recipe} - {selected_recipe}')  
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -117,17 +98,17 @@ if st.session_state.stage >= 1 and st.session_state.stage < 5 and selected_recip
     # )    
     st.markdown("<hr>", unsafe_allow_html=True)
 
-if st.session_state.stage >=2 and st.session_state.stage < 5:
+if st.session_state.stage >=2 and st.session_state.stage < 4:
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.session_state.fresh_milk_fat = st.number_input('Fresh Milk Fat')
     with col2:
         st.session_state.fresh_milk_snf = st.number_input('Fresh Milk SnF')
     with col3:
-        st.session_state.fresh_milk_protein = st.number_input('Fresh Milk Protein')
+        st.session_state.fresh_milk_lactose = st.number_input('Fresh Milk Lactose')
     with col4:
-        st.session_state.fresh_milk_lactose = st.number_input(
-            'Fresh Milk Lactose',
+        st.session_state.fresh_milk_protein = st.number_input(
+            'Fresh Milk Protein',
             on_change = set_state,
             args=[3]
             )
@@ -183,7 +164,7 @@ rework = st.session_state.rework
 rework_ts = st.session_state.rework_ts
 
 # ------------------------------------------------------------- 2. generate composition
-if st.session_state.stage >= 3 and st.session_state.stage < 5:
+if st.session_state.stage == 3:
     st.header('Step 2 - Review Calculation')
 
     # DEBUG
@@ -272,108 +253,140 @@ if st.session_state.stage >= 3 and st.session_state.stage < 5:
     #=======
     df_target=pd.DataFrame([recipe_compositions,fresh_milk_compositions,sugar,garam,stab,budal,rework_compositions,mixing_ds,mixing_target]).transpose()
 
+
     st.session_state.df_target = df_target
     st.dataframe(df_target.style.highlight_max(axis=0),use_container_width=False)
     st.markdown("<hr>", unsafe_allow_html=True)
 
     # # B. Material Remaining Needed
     st.subheader('2. Material Remaining Needed')
-    # Extract and round values from the Series to 4 decimal places
-    st.session_state.remaining_fat = round(mixing_ds['fat'], 4)    # Gets 6.4980
-    st.session_state.remaining_snf = round(mixing_ds['snf'], 4)    # Gets 615.6309
-    st.session_state.remaining_prot = round(mixing_ds['prot'], 4)  # Gets 223.6500
-    st.session_state.remaining_lact = round(mixing_ds['lactose'], 4)  # Gets 223.6500
-    st.text(f'Fat: {st.session_state.remaining_fat} kg')
-    st.text(f'SNF: {st.session_state.remaining_snf} kg') 
-    st.text(f'Protein: {st.session_state.remaining_prot} kg')
-    st.text(f'Lactose: {st.session_state.remaining_lact} kg')
 
-    # # C. Priority List
-    st.subheader('3. Set Priority Order for Milk Components (1-10), as 10 is the highest priority')
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.session_state.fat_priority = st.number_input('FAT')
-    with col2:
-        st.session_state.snf_priority = st.number_input('SnF')
-    with col3:
-        st.session_state.pro_priority = st.number_input('Protein')
-    with col4:
-        st.session_state.lac_priority = st.number_input(
-            'Lactose',
-            on_change = set_state,
-            args=[4]
-            )
-    
-# ------------------------------------------------------------- 2. generate composition
-if st.session_state.stage >= 4 and st.session_state.stage < 5:
-    st.header('Step 3 - Result Calculation')
-    total = 0
-    def get_material_values(ingredients_df, *materials):
-        return {
-            material: tuple(float(ingredients_df.loc[nutrient, material]) * 100
-                            for nutrient in ['fat', 'snf', 'prot', 'lactose'])
-            for material in materials
-        }
-    # Declare Wights
-    weights = {
-        'fat': st.session_state.fat_priority,
-        'snf': st.session_state.snf_priority,
-        'protein': st.session_state.pro_priority,
-        'lactose': st.session_state.lac_priority,
-        }
+    # # B. Inverse Matrix
+    # st.subheader('2. Inverse Matrix of Material Composition')
+    # df_inv = pd.DataFrame(np.linalg.pinv(df_compositions.values),df_compositions.columns, df_compositions.index)
+    # st.session_state.df_inv = df_inv
+    # st.dataframe(df_inv.style.highlight_max(axis=0),use_container_width=True)
+    # st.markdown("<hr>", unsafe_allow_html=True)
 
-    # Run the optimization
-    result = optimize.optimize_milk_mixture(
-        st.session_state.remaining_fat, 
-        st.session_state.remaining_snf, 
-        st.session_state.remaining_prot,
-        st.session_state.remaining_lact, 
-        get_material_values(df_compositions, 'smp', 'wmp', 'whey'),
-        weights
-        )
+    # # C. Multiply Inverse Matrix
+    # st.subheader('3. Multiply Inverse Matrix with Target Matrix')
+    # mixing_target_inverse=df_inv.dot(df_target.mixing_target)
+    # st.session_state.mixing_target_inverse = mixing_target_inverse
+    # st.dataframe(mixing_target_inverse)
 
-    # st.text the results
-    st.text("-" * 50)
-    st.text("Optimal Milk Mixture:")
-    st.text("-" * 50)
-    if 'error' in result and 'message' in result:
-        st.text(f"Error: {result['error']}")
-        st.text(f"Message: {result['message']}")
-    else:
-        st.text("Material Quantities:")
-        for material, quantity in result['mix'].items():
-            if quantity > 0.0001:  # Only show materials with non-zero quantities
-                st.text(f"  {material}: {quantity:.4f}")
-
-        st.text("\nTotal Quantity: {:.4f}".format(result['total_quantity']))
-
-        st.text("\nNutritional Values:")
-        st.text(f"  Fat:     Target: {result['target']['fat']:.4f}, Actual: {result['actual']['fat']:.4f}, Error: {result['error']['fat']:.4f}")
-        st.text(f"  SNF:     Target: {result['target']['snf']:.4f}, Actual: {result['actual']['snf']:.4f}, Error: {result['error']['snf']:.4f}")
-        st.text(f"  Protein: Target: {result['target']['protein']:.4f}, Actual: {result['actual']['protein']:.4f}, Error: {result['error']['protein']:.4f}")
-        st.text(f"  Lactose: Target: {result['target']['lactose']:.4f}, Actual: {result['actual']['lactose']:.4f}, Error: {result['error']['lactose']:.4f}")
-
-        st.text("-" * 50)
-        st.text("\n\nTotaled All Materials:")
-        st.text("-" * 50)
-
-        st.text(f"  {'Fresh Milk'}: {st.session_state.fresh_milk:.4f}")
-        total = total + st.session_state.fresh_milk
+    # col1,col2 = st.columns(2)
+    # with col1 :
+    #     st.button('Back Process', 
+    #               on_click= set_state, 
+    #               args=[3], 
+    #               icon=':material/arrow_back:',
+    #               use_container_width=True,
+    #               )
+    # with col2 :
+    #     st.button('Calculate Now !', 
+    #             type='primary', 
+    #             use_container_width=True,
+    #             on_click= set_state,
+    #             args=[5]
+    #             )
         
-        for material, quantity in result['mix'].items():
-            if quantity > 0.0001:  # Only show materials with non-zero quantities
-                st.text(f"  {material}: {quantity:.4f}")
-                total = total + quantity
-        
-        st.text(f"  {'Sugar'}: {st.session_state.df_target['plain']['sugar']:.4f}")
-        total = total + st.session_state.df_target['plain']['sugar']
-        st.text(f"  {'Sugar Syrup'}: {st.session_state.df_target['plain']['sugar_syrup']:.4f}")
-        total = total + st.session_state.df_target['plain']['sugar_syrup']
-        st.text(f"  {'Garam'}: {st.session_state.df_target['plain']['garam']:.4f}")
-        total = total + st.session_state.df_target['plain']['garam']
-        st.text(f"  {'Stabilizer'}: {st.session_state.df_target['plain']['stab']:.4f}")
-        total = total + st.session_state.df_target['plain']['stab']
-        st.text(f"  {'Budal Milk'}: {st.session_state.df_target['plain']['budal']:.4f}")
-        total = total + st.session_state.df_target['plain']['budal']
-        st.text(f"  {'Water'}: {st.session_state.production_batch-total:.4f}")
-        st.text(f"  {'Total Material'}: {total+(st.session_state.production_batch-total):.4f}")
+# SET GLOBAL VARIABLES
+df_target = st.session_state.df_target
+df_inv = st.session_state.df_inv
+mixing_target_inverse = st.session_state.mixing_target_inverse
+
+#  ------------------------------------------------------------- 3. Final Calculation
+if st.session_state.stage == 5:
+    # TITLE PAGE
+    st.header('Step 3 - Final Calculation')
+    st.subheader('Final Calculation')
+
+    # ======================= START NEW, init the variables
+    material_list=list(df_compositions.keys())
+    compositions_list=list(df_compositions.index)
+    final=dict()
+    final_list=[]
+    #======== final_kg, usage material to achieve target
+    final['kg']=pd.Series(list('0'*len(material_list)),index=material_list,dtype='float')
+    final['kg']=dict(final['kg'])
+    for i in material_list:
+        final['kg'][i]=mixing_target_inverse[i]*production_batch
+    final['kg']['Fresh_milk']=fresh_milk
+    final['kg']['Rework']=rework
+    final['kg']['material']=sum(final['kg'].values())
+    final['kg']['water']=production_batch-final['kg']['material']
+    final_list.append(pd.Series(final['kg'],name='final_kg'))
+    final_temp=final['kg']
+    comp_pos=0
+    for j in range(len(compositions_list)):
+        comp_pos=j
+        temp=pd.Series(list('0'*len(material_list)),index=material_list,dtype='float')
+        temp=dict(temp)
+        for i in material_list:
+            temp[i]=final_temp[i]*df_compositions.loc[
+            compositions_list[comp_pos],[i]].values[0]
+        temp['Fresh_milk']=final['kg']['Fresh_milk']*fresh_milk_compositions_default[
+            compositions_list[comp_pos]]
+        temp['Rework']=df_target.loc[compositions_list[comp_pos],'rework_compositions']
+        temp['material']=sum(temp.values())
+        temp['ds']=temp['material']/production_batch
+        final[compositions_list[comp_pos]]=temp
+        final_list.append(pd.Series(temp,name=compositions_list[comp_pos]))
+
+    df_final=pd.DataFrame(final)
+    df_final.loc['ds','kg']=pd.DataFrame(final).loc['ds',:].sum()
+
+    # PREVIEW RESULT
+    st.dataframe(df_final.style.highlight_max(axis=0))
+
+    # PREVIEW COMPARISON
+    st.write('total ds in recipe:',df_recepies.iloc[:,recipe].sum())
+    st.write('total ds final calculation:',df_final.loc['ds','kg'])
+    st.write('difference ds:',df_final.loc['ds','kg']-df_recepies.iloc[:,recipe].sum(),'\n')
+    st.write('Fresh Milk:',fresh_milk,'fat:',st.session_state.fresh_milk_fat,'snf',st.session_state.fresh_milk_snf,'protein:',st.session_state.fresh_milk_protein)
+    st.write('Batch:',production_batch)
+    st.write('Rework:',rework,'ts:',rework_ts)
+    st.write(f'Recipe chosen is >{recipies_list[recipe]}<\n')
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+    col7,col8,col9=st.columns(3)
+    with col7:
+        st.write('Composition')
+    with col8:
+        st.write('Target')
+    with col9:
+        st.write('Final')
+    # st.write('Composition:         Target:   Final:')
+
+    for i in range(len(df_recepies.index)):
+        # line ='{:<20}'.format(df_recepies.index[i])+':'+'{:.3%}'.format(df_recepies.iloc[i,recipe])+':  {:.3%}'.format(df_final.iloc[13,i+1])
+        col4,col5,col6 = st.columns(3)
+        with col4:
+            st.write('{:<20}'.format(df_recepies.index[i]))
+        with col5:
+            st.write('{:.3%}'.format(df_recepies.iloc[i,recipe]))
+        with col6:
+            st.write('{:.3%}'.format(df_final.iloc[13,i+1]))
+        # st.write(line)
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.write('\n\nMaterial use:\n')
+    n=0
+    for i in df_final.kg.index:
+        line = '{0:0.2f}'.format(float(df_final.kg[i]))
+        st.write(i.ljust(12)+':',line.rjust(10))
+
+    col1,col2 = st.columns(2)
+    with col1 :
+        st.button('Back Process', 
+                  on_click= set_state, 
+                  args=[4], 
+                  icon=':material/arrow_back:',
+                  use_container_width=True,
+                  )
+    with col2 :
+        st.button('Finished', 
+                    type='primary', 
+                    use_container_width=True,
+                    on_click= set_state,
+                    args=[0]
+                )
