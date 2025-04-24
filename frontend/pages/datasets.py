@@ -8,7 +8,7 @@ import json
 st.title('Dataset')
 
 # Domain
-domain_api = "http://127.0.0.1:8000/"
+domain_api = "https://milk-calculation-backend-a2qd.vercel.app/"
 
 # URL for the FastAPI endpoint
 url_material = domain_api+"material_comp"
