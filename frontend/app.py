@@ -14,8 +14,9 @@ with st.sidebar:
     with st.expander('Main Menu',True):
         dashboard = st.Page("pages/dashboard.py", title="Dashboard", icon=":material/dashboard:",default=True)
         milk_calc = st.Page("pages/milk-calculation.py", title="Milk Calculation", icon=":material/function:")
+        milk_calc_price = st.Page("pages/milk-calculation-price.py", title="Milk Calculation with Price", icon=":material/function:")
         datasets = st.Page("pages/datasets.py", title="Datasets", icon=":material/dataset:")
 
-pg = st.navigation([dashboard, milk_calc, datasets])
+pg = st.navigation([dashboard, milk_calc, milk_calc_price, datasets])
 pg.run()
 

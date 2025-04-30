@@ -80,7 +80,7 @@ compositions_list=list(df_compositions.index)
 # ------------------------------------------- HEADER
 
 st.title('Milk Calculation')
-st.image("https://www.ultrajaya.co.id/images/header-products.jpg",use_container_width=True)
+st.image("https://www.ultrajaya.co.id/images/header-products.jpg",use_column_width=True)
 
 # st.dataframe(df_compositions)
 # st.dataframe(df_recepies)
